@@ -1,0 +1,82 @@
+---
+# tasks file for siri
+    - name: installing wildfly
+      ansible.builtin.apt:
+        name: default-jdk
+        update_cache: yes
+        state: present
+    - name: install curl and wget
+      ansible.builtin.apt:
+        name:
+          - curl
+          - wget
+        state: present  
+    - name: installing the wildfly
+      ansible.builtin.get_url:
+        url: https://github.com/wildfly/wildfly/releases/download/27.0.1.Final/wildfly-27.0.1.Final.tar.gz 
+        dest: /home/siri/
+    - name: creating a directory
+      ansible.builtin.file:
+        path: /opt/wildfly
+        state: directory    
+    - name: extracting file into the folder
+      ansible.builtin.unarchive:
+        src: /home/siri/wildfly-27.0.1.Final.tar.gz
+        dest: /opt/wildfly
+        remote_src: yes
+    - name: moving resulting folder to /opt/wildfly
+      ansible.builtin.copy:
+        src: /opt/wildfly/wildfly-27.0.1.Final/
+        dest: /opt/wildfly
+        remote_src: yes
+    - name: creating group to wildfly
+      ansible.builtin.group:
+        name: wildfly
+        state: present
+        system: yes
+    - name: create a user and adding it to group of wildfly
+      ansible.builtin.user:
+        name: wildfly
+        group: wildfly 
+        home: /opt/wildfly
+        shell: /sbin/nologin/wildfly
+        system: yes    
+    - name: create wildfly configurations directory
+      ansible.builtin.file:
+        path: /etc/wildfly
+        state: absent
+    - name: coping files
+      ansible.builtin.copy:
+        src: /opt/wildfly/docs/contrib/scripts/systemd/wildfly.conf 
+        dest: /etc/wildfly/
+        remote_src: yes
+    - name: file copy
+      ansible.builtin.copy:
+        src: /opt/wildfly/docs/contrib/scripts/systemd/wildfly.service 
+        dest: /etc/systemd/system/
+        remote_src: yes
+    - name: file coping
+      ansible.builtin.copy:
+        src: /opt/wildfly/docs/contrib/scripts/systemd/launch.sh
+        dest: /opt/wildfly/bin/
+        remote_src: yes
+    - name: changing file permissions
+      ansible.builtin.file:
+        path: /opt/wildfly/bin/launch.sh
+        mode: +x
+    - name: set /opt/wildfly permissions
+      ansible.builtin.file:
+        owner: wildfly
+        group: wildfly
+        path: /opt/wildfly
+        recurse: yes
+    - name: restarting wildfly
+      ansible.builtin.systemd:
+        name: wildfly.service
+        daemon_reload: yes
+        enabled: yes
+        state: restarted
+               
+                  
+
+                          
